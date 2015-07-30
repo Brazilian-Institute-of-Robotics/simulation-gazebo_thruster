@@ -4,6 +4,7 @@ using namespace std;
 using namespace gazebo;
 using namespace gazebo_thruster;
 
+
 GazeboThruster::GazeboThruster()
 {
 }
@@ -67,13 +68,16 @@ std::vector<gazebo_thruster::GazeboThruster::Thruster> GazeboThruster::loadThrus
                 sdf::ElementPtr thrusterElement = pluginElement->GetElement("thruster");
                 while(thrusterElement)
                 {
-                    // Check thrusters attributes
+                    // Load thrusters attributes
                     Thruster thruster;
                     thruster.name = thrusterElement->Get<string>("name");
                     gzmsg << "GazeboThruster: thruster name: " << thruster.name << endl;
-                    thruster.minThrust = getParameter<double>(thrusterElement,"min_thrust","N",-100);
-                    thruster.maxThrust = getParameter<double>(thrusterElement,"max_thrust","N",100);
+                    thruster.minThrust = getParameter<double>(thrusterElement,"min_thrust","N",-200);
+                    thruster.maxThrust = getParameter<double>(thrusterElement,"max_thrust","N",200);
                     thruster.effort = 0.0;
+                    thruster.alpha_positive = getParameter<float>(thrusterElement,"alpha_positive","dimensionless",1);
+                    thruster.alpha_negative = getParameter<float>(thrusterElement,"alpha_negative","dimensionless",.75);
+                    thruster.speed = 0.0;
                     thrusters.push_back(thruster);
                     thrusterElement = thrusterElement->GetNextElement("thruster");
                 }
@@ -118,7 +122,7 @@ void GazeboThruster::initComNode()
 }
 
 
-void GazeboThruster::readInput(ThrustersMSG& thrustersMSG)
+void GazeboThruster::readInput(ThrustersMSG const& thrustersMSG)
 {
     // Read buffer and update the thruster effort
     for(int i = 0; i < thrustersMSG->thrusters_size(); ++i)
@@ -131,27 +135,23 @@ void GazeboThruster::readInput(ThrustersMSG& thrustersMSG)
             if(thrusterCMD.name() == thruster->name)
             {
                 thrusterFound = true;
-                thruster->effort = updateEffort(thrusterCMD);
+
+                if( thrusterCMD.has_raw() )
+                    thruster->effort = thrusterRawModel( thrusterCMD.raw() );
+
+                if( thrusterCMD.has_effort() )
+                    thruster->effort = thrusterCMD.effort();
+
+                if( thrusterCMD.has_speed() )
+                    thruster->effort = thrusterSpeedModel( thrusterCMD.speed(),
+                            thruster->alpha_positive, thruster->alpha_negative );
+
                 checkThrustLimits(thruster);
             }
         }
         if(!thrusterFound)
             gzmsg << "GazeboThruster: incoming thruster name: "<< thrusterCMD.name() << ", not found." << endl;
     }
-}
-
-
-double GazeboThruster::updateEffort(gazebo_thruster::msgs::Thruster thrusterCMD)
-{
-    double effort;
-
-    if( thrusterCMD.has_raw() )
-        effort = thrusterMathModel( thrusterCMD.raw() );
-
-    if( thrusterCMD.has_effort() )
-        effort = thrusterCMD.effort();
-
-    return effort;
 }
 
 
@@ -173,11 +173,26 @@ void GazeboThruster::checkThrustLimits(vector<Thruster>::iterator thruster)
 }
 
 
-double GazeboThruster::thrusterMathModel(double input)
+double GazeboThruster::thrusterRawModel(double const& input)
 {
     // Linear model
     double a = 1.0, b = 0.0;
     return a*( input ) + b;
+}
+
+
+double GazeboThruster::thrusterSpeedModel(double const& input, float const& alpha_positive
+        ,float const& alpha_negative)
+{
+    // Linear model
+    double effort;
+    if( input >= 0 )
+    {
+        effort = alpha_positive * input * input;
+    }else{
+        effort = - alpha_negative * input * input;
+    }
+    return effort;
 }
 
 
