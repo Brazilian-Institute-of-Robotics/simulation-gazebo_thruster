@@ -33,7 +33,7 @@ namespace gazebo_thruster
     private:
         void updateBegin(gazebo::common::UpdateInfo const& info);
         double thrusterRawModel(double const& input);
-        double thrusterSpeedModel(double const& input, float const& alpha_p, float const& alpha_n);
+        double thrusterSpeedModel(double const& rotation, float const& alpha_p, float const& alpha_n);
         std::vector<Thruster> loadThrusters();
         bool checkThrusters( std::vector<Thruster> );
         void initComNode();

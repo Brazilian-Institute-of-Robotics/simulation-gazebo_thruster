@@ -181,18 +181,14 @@ double GazeboThruster::thrusterRawModel(double const& input)
 }
 
 
-double GazeboThruster::thrusterSpeedModel(double const& input, float const& alpha_positive
+double GazeboThruster::thrusterSpeedModel(double const& rotation, float const& alpha_positive
         ,float const& alpha_negative)
 {
-    // Linear model
-    double effort;
-    if( input >= 0 )
-    {
-        effort = alpha_positive * input * input;
+    if( rotation >= 0 ){
+        return alpha_positive * rotation * rotation;
     }else{
-        effort = - alpha_negative * input * input;
+        return - alpha_negative * rotation * rotation;
     }
-    return effort;
 }
 
 
