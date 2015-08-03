@@ -18,23 +18,26 @@ namespace gazebo_thruster
         virtual void Load(gazebo::physics::ModelPtr _model, sdf::ElementPtr _sdf);
 
         typedef const boost::shared_ptr<const gazebo_thruster::msgs::Thrusters> ThrustersMSG;
-        void readInput(ThrustersMSG &thrustersMSG);
+        void readInput(ThrustersMSG const& thrustersMSG);
 
         struct Thruster{
             std::string name;
             double minThrust;
             double maxThrust;
             double effort;
+            float  alpha_positive;
+            float  alpha_negative;
+            double speed;
         };
 
     private:
         void updateBegin(gazebo::common::UpdateInfo const& info);
-        double thrusterMathModel(double input);
+        double thrusterRawModel(double const& input);
+        double thrusterSpeedModel(double const& rotation, float const& alpha_p, float const& alpha_n);
         std::vector<Thruster> loadThrusters();
         bool checkThrusters( std::vector<Thruster> );
         void initComNode();
         void checkThrustLimits(std::vector<Thruster>::iterator thruster);
-        double updateEffort(gazebo_thruster::msgs::Thruster thrusterCMD);
 
         std::vector<gazebo::event::ConnectionPtr> eventHandler;
         gazebo::transport::NodePtr node;

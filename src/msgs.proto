@@ -5,6 +5,7 @@ message Thruster
     required string     name = 1;
     optional double     raw = 2;
     optional double     effort = 3;
+    optional double     speed = 4;
 }
 
 message Thrusters
